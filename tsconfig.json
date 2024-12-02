@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES6",  // Or ES2020
+    "module": "ES2020",  // Use ES2020 or later for module support
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "baseUrl": "./src", 
+    "paths": {
+      "*": ["node_modules/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
