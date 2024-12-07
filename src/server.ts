@@ -10,9 +10,12 @@ app.use(bodyParser.json());
 
 pgDB.connect().then(() => {
     console.log("db Connected Successfully");
+    loadRoutes(app)
+}).catch((err) => {
+    console.log("db Connection Failed", err);
 });
 
-loadRoutes(app)
+
 
 // Admin Routes
 // app.use("/admin", adminRoutes);
