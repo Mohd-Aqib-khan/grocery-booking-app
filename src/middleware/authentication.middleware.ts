@@ -1,15 +1,17 @@
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
 interface DecodedToken {
     id: number;
     username: string;
-    role: string;
+    roleId: string;
+    roleName: string;
     iat?: number;
     exp?: number;
 }
 
-export const authenticateUser = (req: any, res: any, next: any) => {
-    const authHeader = req.headers.get["authorization"];
+export const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers["authorization"];
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res.status(401).json({ message: "Unauthorized: No token provided" });
@@ -24,7 +26,6 @@ export const authenticateUser = (req: any, res: any, next: any) => {
             }
             return res.status(401).json({ message: "Unauthorized: Invalid token" });
         }
-
         // Attach the decoded token to the request object
         req['user'] = decoded as DecodedToken;
         next();

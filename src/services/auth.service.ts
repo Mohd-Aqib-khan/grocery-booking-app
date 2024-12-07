@@ -17,9 +17,12 @@ class AuthService {
     }
 
     async findUserByUsername(username: string): Promise<any> {
-        return await this.db.none(
+        return await this.db.any(
             `
-      SELECT * FROM users WHERE username = $1
+      SELECT users.id, users.username, users.password,
+      role.name as roleName, role.id as roleId FROM users
+        left join role on users.role = role.id
+        WHERE username = $1 and is_active
       `,
             [username]
         );

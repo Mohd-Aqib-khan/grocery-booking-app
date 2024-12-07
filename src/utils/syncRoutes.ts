@@ -9,12 +9,9 @@ const __dirname = path.dirname(__filename);
 export const loadRoutes = async (app: any, routesFolder = "../routes") => {
     const routesPath = path.join(__dirname, routesFolder);
     // Read all files in the specified folder
-    console.log("ddfdf", routesPath);
     const files = fs.readdirSync(routesPath);
     for (const file of files) {
-        console.log("file", file);
         const route = await import(path.join(routesPath, file)); // Dynamic import
-        console.log('route', route);
         const fileName = file.split(".")[0];
         // Apply the route to the app
         if (route[fileName].requiresAuth) {
