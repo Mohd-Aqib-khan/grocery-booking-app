@@ -4,7 +4,7 @@ CREATE TABLE groceries(
     price NUMERIC(10, 2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    isActive BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
     created_by INTEGER references users(id),
     updated_by INTEGER references users(id)
 );

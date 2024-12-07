@@ -22,7 +22,7 @@ class AuthService {
       SELECT users.id, users.username, users.password,
       role.name as roleName, role.id as roleId FROM users
         left join role on users.role = role.id
-        WHERE username = $1 and isActive
+        WHERE username = $1 and is_active
       `,
             [username]
         );

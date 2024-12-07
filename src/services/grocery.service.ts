@@ -8,7 +8,7 @@ class GroceryService {
         return await this.db.any(`
             select item.id, item.name, item.price,sum(stock) as stock from groceries as item
             left join inventory on item.id = inventory.grocery_id
-            where item.isActive and inventory.isActive
+            where item.is_active and inventory.is_active
             group by item.id`);
     }
 
@@ -70,7 +70,7 @@ class GroceryService {
 
 
     async deleteItem(id: number): Promise<void> {
-        await this.db.none("UPDATE groceries SET isActive=false WHERE id=$1", [id]);
+        await this.db.none("UPDATE groceries SET is_active=false WHERE id=$1", [id]);
     }
 }
 
