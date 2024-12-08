@@ -11,4 +11,4 @@ interface GroceryItem {
     inventories?: Inventory[];
 }
 
-export { GroceryItem };
+export { GroceryItem, Inventory };

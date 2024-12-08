@@ -5,7 +5,7 @@ import { checkRole } from "../middleware/checkRole.middleware.js";
 const router = express.Router(); // Create the router using express.Router()
 
 // Route to get all grocery items - accessible by "admin" and "user"
-router.post("/create", checkRole(["user"]), OrderController.createOrder);
+router.post("/create", checkRole(["admin", "user"]), OrderController.createOrder);
 
 
 // Export the grocery routes

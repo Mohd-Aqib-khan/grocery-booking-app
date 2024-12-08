@@ -1,76 +1,111 @@
-import pgDB from "../db/db.js";
-import { GroceryItem } from "../model/grocery.model.js";
+
+import { GroceryItem, Inventory } from "../model/grocery.model.js"; // Sequelize Model// Sequelize Model
+import db from "../models/index.js"; // Assuming the models are exported from a central location
 
 class GroceryService {
 
-    db = pgDB.getDB();
+    // Get all grocery items with their inventory count
     async getAllItems(): Promise<GroceryItem[]> {
-        return await this.db.any(`
-            select item.id, item.name, item.price,sum(stock) as stock from groceries as item
-            left join inventory on item.id = inventory.grocery_id
-            where item.is_active and inventory.is_active
-            group by item.id`);
-    }
-
-    async addItem(item: GroceryItem): Promise<void> {
-        const insertedItem = await this.db.one(
-            "INSERT INTO groceries (name, price) VALUES ($1, $2) RETURNING id;",
-            [item.name, item.price]
-        );
-        const allInventory = (item.inventories ?? []).map((inventory) => {
-            return this.db.none("INSERT INTO inventory (warehouse_id, grocery_id, stock) VALUES ($1, $2, $3)", [
-                inventory.warehouseId,
-                insertedItem.id,
-                inventory.stock
-            ]);
+        return await db.Grocery.findAll({
+            attributes: [
+                'id',
+                'name',
+                'price',
+                [db.sequelize.fn('sum', db.sequelize.col('inventories.stock')), 'stock']
+            ],
+            include: [
+                {
+                    model: db.Inventory,
+                    as: 'inventories',
+                    required: false,
+                    where: { isActive: true },
+                    attributes: []
+                }
+            ],
+            group: ['Grocery.id'], // Ensure to group by the item id
+            where: { isActive: true }, // Only active grocery items
         });
-        await Promise.all(allInventory);
     }
 
-    async updateItem(id: number, item: GroceryItem): Promise<void> {
-        // Ensure the grocery item exists before updating
-        if (!id) {
-            throw new Error("Grocery item ID is required for updating.");
+    // Add a new grocery item and associated inventories
+    async addItem(item: GroceryItem, userId: number): Promise<void> {
+        const grocery = await db.Grocery.create({
+            name: item.name,
+            price: item.price,
+            createdBy: userId
+        });
+
+        // Handle inventory insertion
+        if (item.inventories && item.inventories.length > 0) {
+            const inventoryData = item.inventories.map((inventory: Inventory) => ({
+                warehouseId: inventory.warehouseId,
+                groceryId: grocery.id,
+                stock: inventory.stock
+            }));
+
+            // Bulk insert inventories associated with the grocery item
+            await db.Inventory.bulkCreate(inventoryData);
+        }
+    }
+
+    // Update an existing grocery item and its inventories
+    async updateItem(id: number, item: GroceryItem, userId: number): Promise<void> {
+        // Check if the grocery item exists
+        const groceryItem = await db.Grocery.findByPk(id);
+        if (!groceryItem) {
+            throw new Error("Grocery item not found");
         }
 
-        // Update the grocery item in the groceries table
-        await this.db.none(
-            "UPDATE groceries SET name = $1, price = $2 WHERE id = $3",
-            [item.name, item.price, id]
-        );
+        // Update the grocery item
+        await groceryItem.update({
+            name: item.name,
+            price: item.price,
+            updatedBy: userId
+        });
 
-        // Handle inventory updates
+        // Use a transaction for updating inventories
         if (item.inventories && item.inventories.length > 0) {
-            // Use a transaction to ensure atomic updates
-            await this.db.tx(async (t) => {
-                for (const inventory of item.inventories || []) {
-                    // Check if inventory exists for the given grocery and warehouse
-                    const existingInventory = await t.oneOrNone(
-                        "SELECT id FROM inventory WHERE warehouse_id = $1 AND grocery_id = $2",
-                        [inventory.warehouseId, id]
-                    );
+            const t = await db.sequelize.transaction();
+
+            try {
+                for (const inventory of item.inventories) {
+                    const existingInventory = await db.Inventory.findOne({
+                        where: {
+                            id: inventory.id
+                        },
+                        transaction: t
+                    });
 
                     if (existingInventory) {
-                        // Update existing inventory
-                        await t.none(
-                            "UPDATE inventory SET stock = $1 WHERE id = $2",
-                            [inventory.stock, existingInventory.id]
-                        );
+                        // Update the existing inventory
+                        await existingInventory.update({ stock: inventory.stock }, { transaction: t });
                     } else {
-                        // Insert new inventory record
-                        await t.none(
-                            "INSERT INTO inventory (warehouse_id, stock) VALUES ($1, $3)",
-                            [inventory.warehouseId, inventory.stock]
-                        );
+                        // Insert a new inventory record if it doesn't exist
+                        await db.Inventory.create({
+                            warehouseId: inventory.warehouseId,
+                            groceryId: id,
+                            stock: inventory.stock
+                        }, { transaction: t });
                     }
                 }
-            });
+
+                // Commit transaction
+                await t.commit();
+            } catch (error) {
+                await t.rollback();
+                throw error;
+            }
         }
     }
 
+    // Deactivate a grocery item (soft delete)
+    async deleteItem(id: number, userId: number): Promise<void> {
+        const groceryItem = await db.Grocery.findByPk(id);
+        if (!groceryItem) {
+            throw new Error("Grocery item not found");
+        }
 
-    async deleteItem(id: number): Promise<void> {
-        await this.db.none("UPDATE groceries SET is_active=false WHERE id=$1", [id]);
+        await groceryItem.update({ isActive: false, updatedBy: userId });
     }
 }
 
