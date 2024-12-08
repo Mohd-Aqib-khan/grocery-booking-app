@@ -1,4 +1,5 @@
-import * as express from "express";
+import express from "express";
+import { Model, Sequelize } from 'sequelize';
 
 declare global {
     namespace Express {
@@ -12,5 +13,10 @@ declare global {
             };
         }
     }
-}
 
+    type AssociateFunction = (models: Record<string, typeof Model>) => void;
+
+    interface ExtendedModel extends Model {
+        associate?: AssociateFunction;
+    }
+}

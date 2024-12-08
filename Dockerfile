@@ -21,3 +21,4 @@ EXPOSE 3000
 
 # Run the application
 CMD ["node", "dist/server.js"]
+# RUN npm run dev

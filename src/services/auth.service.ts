@@ -1,31 +1,39 @@
-import pgDB from "../db/db.js";
 import bcrypt from "bcrypt";
+import db from "../models/index.js"; // Import Sequelize models (assuming 'User' and 'Role' are in the models)
+
 class AuthService {
 
-    db = pgDB.getDB();
+    // Register a new user
     async registerUser(username: string, password: string, role: string): Promise<any> {
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Assuming 'role' corresponds to the role ID or a role name
+        // Here, you should check if the role exists before proceeding with user creation
+        const user = await db.User.create({
+            username,
+            password: hashedPassword,
+            role: role, // Assuming role is roleId, adjust as necessary
+        });
 
-        return this.db.none(
-            `
-      INSERT INTO users (username, password, role)
-      VALUES ($1, $2, $3)
-      `,
-            [username, hashedPassword, role]
-        );
+        return user;
     }
 
+    // Find a user by username
     async findUserByUsername(username: string): Promise<any> {
-        return await this.db.any(
-            `
-      SELECT users.id, users.username, users.password,
-      role.name as roleName, role.id as roleId FROM users
-        left join role on users.role = role.id
-        WHERE username = $1 and is_active
-      `,
-            [username]
-        );
+        // Use Sequelize to find the user by username
+        const user = await db.User.findOne({
+            where: { username },
+            include: [
+                {
+                    model: db.Role, // Assuming there is a Role model with association to User
+                    as: 'roleDetails', // Alias for the role
+                    attributes: ['name', 'id'] // Select role name and id
+                }
+            ]
+        });
+
+
+        return user;
     }
 }
 

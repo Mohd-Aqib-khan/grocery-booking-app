@@ -13,7 +13,7 @@ class AuthController {
 
         try {
             const existingUser = await AuthService.findUserByUsername(username);
-            if (existingUser[0]) {
+            if (existingUser && existingUser[0]) {
                 res.status(400).json({ error: "Username already exists." });
                 return;
             }
@@ -21,6 +21,7 @@ class AuthController {
             await AuthService.registerUser(username, password, role);
             res.status(201).json({ message: "User registered successfully." });
         } catch (error) {
+            console.log("err", error);
             res.status(500).json({ error: "Server error." });
         }
     }
@@ -35,20 +36,21 @@ class AuthController {
 
         try {
             const user = await AuthService.findUserByUsername(username);
-
+            console.log("user", user);
             if (!user) {
                 res.status(401).json({ error: "Invalid credentials." });
                 return;
             }
-            const isPasswordValid = await bcrypt.compare(password, user[0].password);
+            const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
                 res.status(401).json({ error: "Invalid credentials." });
                 return
             }
 
-            const token = JwtUtil.generateToken({ id: user[0].id, username: user[0].username, roleName: user[0].rolename, roleId: user[0].roleid });
+            const token = JwtUtil.generateToken({ id: user.id, username: user.username, roleName: user.roleDetails.name, roleId: user.roleDetails.id });
             res.json({ message: "Login successful.", token: `Bearer ${token}` });
         } catch (error) {
+            console.log("error", error);
             res.status(500).json({ error: "Server error." });
         }
     }

@@ -7,3 +7,5 @@ interface OrderRequest {
     userId: number;
     items: OrderItem[];
 }
+
+export { OrderRequest }
